@@ -12,7 +12,6 @@ int main()
     printf("sum :%d\n", sum);
     printf("I am biubiu");
     printf("ti is a little");
-
-
+    int j = 1;
     return 0;
 }
