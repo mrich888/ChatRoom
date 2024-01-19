@@ -10,6 +10,7 @@ int main()
     int sum = a + b;
 
     printf("sum :%d\n", sum);
+    printf("I am biubiu");
 
 
     return 0;
