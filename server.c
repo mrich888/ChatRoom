@@ -16,5 +16,11 @@ int main()
 
 
 
+    int num = 0;
+    num += SIZE;
+    printf("num : %d\n", num);
+
+
+
     return 0;
 }
