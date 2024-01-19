@@ -20,6 +20,8 @@ int main()
     num += SIZE;
     printf("num : %d\n", num);
 
+    int c;
+    char vv;
 
 
     return 0;
