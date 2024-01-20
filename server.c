@@ -11,6 +11,8 @@
 
 #define MAX_LISTEN 128
 #define BUFFER_SIZE 128
+#define SERVER_PORT 8080
+#define LOCAL_IPADDRESS "127.0.0.1"
 
 /* 线程执行的任务 */
 void * threadHandle(void *arg)
@@ -42,9 +44,19 @@ void * threadHandle(void *arg)
         }
         else
         {
+            if (recvBuffer == "注册")
+            {
+
+            }
+            else if (recvBuffer == "登陆")
+            {
+
+            }
 
         }
     }
+
+    pthread_exit(NULL);
     
 
 }
@@ -75,7 +87,8 @@ int main()
     /* 分配地址族 */
     localAddress.sin_family = AF_INET;
     /* 端口和ip都需要转换成大端 */
-    localAddress.sin_addr.s_addr = INADDR_ANY;
+    localAddress.sin_port = htons(SERVER_PORT);
+    localAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 
     int localAddressLen = sizeof(localAddress);
     int ret = bind(sockfd, (struct sockaddr *)&localAddress, localAddressLen);
