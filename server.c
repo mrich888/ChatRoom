@@ -1,28 +1,18 @@
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <error.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <signal.h>
 
-#define SIZE 10
 
 int main()
 {
-    int a = SIZE;
-    if (a > 0)
-    {
-        printf("is a 正数");
-    }
-    else
-    {
-        printf("是个负数");
-    }
-
-
-
-    int num = 0;
-    num += SIZE;
-    printf("num : %d\n", num);
-
-    int c;
-    char vv;
-
+    
 
     return 0;
 }
