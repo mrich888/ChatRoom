@@ -6,6 +6,19 @@
 #define MAX_CONTENT   1024
 #define MAX_TARGET    10
 
+enum CHOICE 
+{
+    /* 登录 */
+    Login = 1,
+    /* 注册 */
+    Register,
+    /* 私聊 */
+    Direct_chat,
+    /* 群聊 */
+    Groups_chat,
+};
+
+
 /* 信息结构体 */
 typedef struct message
 {
@@ -26,6 +39,14 @@ typedef struct client
 
 /* 打印操作菜单 */
 int print_menu();
+/* 客户端登录 */
+int client_login(message *msg);
+/* 客户端注册  */
+int client_register(message *msg);
+/* 客户端选择私聊 */
+int client_direct_chat(message *msg);
+/* 客户端选择群聊 */
+int client_group_chat(message *msg);
 /* 客户端发送消息 */
 int send_message();
 /* 客户端接收消息 */
