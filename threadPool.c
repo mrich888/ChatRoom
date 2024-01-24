@@ -285,12 +285,73 @@ int threadPoolInit(threadpool_t *pool, int minThreads, int maxThreads, int taskQ
 /* 线程池添加任务 */
 int threadPoolAddTask(threadpool_t *pool, void *(worker_hander)(void *arg), void *arg)
 {
+    if (pool == NULL)
+    {
+        return NULL_PTR;
+    }
+
+    /* 加锁 */
+    pthread_mutex_lock(&pool->mutexpool);
+    /* 任务队列满了 */
+    while (pool->queueSize == pool->queueCapacity && pool->shutDown == 0)
+    {
+        /* 等待条件变量 */
+        pthread_cond_wait(&pool->notFull, &pool->mutexpool);
+    }
+    if (pool->shutDown != 0)
+    {
+        pthread_mutex_unlock(&pool->mutexpool);
+        return ON_SUCCESS;
+    }
+
+    /* 将新的任务 添加到任务队列中 */
+    pool->taskQueue[pool->queueRear].worker_hander = worker_hander;
+    pool->taskQueue[pool->queueRear].arg = arg;
+    /* 任务个数加1 */
+    pool->queueSize++;
+    /* 该队列是循环队列 要让此索引循环起来 */
+    pool->queueRear = (pool->queueRear + 1) % pool->queueCapacity;
+    pthread_mutex_unlock(&pool->mutexpool);
+    pthread_cond_signal(&pool->notEmpty);
+
+    return ON_SUCCESS;
 
 }
 
 /* 线程池的销毁 */
 int threadPoolDestory(threadpool_t *pool)
 {
+    if (pool == NULL)
+    {
+        return NULL_PTR;
+    }
+    pool->shutDown = 1;
+    /* 阻塞回收管理者线程 */
+    pthread_join(pool->managerThread, NULL);
+    /* 唤醒阻塞消费者线程 */
+    for (int idx = 0; idx < pool->liveThreadNums; idx++)
+    {
+        pthread_cond_signal(&pool->notEmpty);
+    }
+
+    /* 释放堆空间 */
+    if (pool->taskQueue)
+    {
+        free(pool->taskQueue);
+        pool->taskQueue = NULL;
+    }
+    if (pool->threadId)
+    {
+        free(pool->threadId);
+        pool->threadId = NULL;
+    }
+
+    pthread_mutex_destroy(&pool->mutexBusy);
+    pthread_mutex_destroy(&pool->mutexpool);
+    pthread_cond_destroy(&pool->notEmpty);
+    pthread_cond_destroy(&pool->notFull);
+
+    return ON_SUCCESS;
 
 }
 
