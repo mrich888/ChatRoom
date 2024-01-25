@@ -35,9 +35,12 @@ typedef struct message
 /* 打印操作菜单 */
 void print_menu();
 /* 客户端登录 */
-int client_login(json_object *user, int SERVER_PORT, const char *SERVER_IP);
+int client_login(int sockfd, struct json_object *message);
 /* 客户端注册  */
-int client_register(json_object *user, int SERVER_PORT, const char *SERVER_IP);
+int client_register(int sockfd, struct json_object *message);
+/* 发送注册和登录信息到服务器 */
+int send_to_server(int sockfd, struct json_object *message);
+/* todo...看是否可以跟后面的发送合在一起 */
 /* 客户端选择私聊 */
 int client_direct_chat();
 /* 客户端选择群聊 */

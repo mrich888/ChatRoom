@@ -1,58 +1,57 @@
 #include <stdio.h>
-
-#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <error.h>
+#include <pthread.h>
+#include "server_handle.h"
 #include "threadPool.h"
 
-#define MAX_LISTEN 128
+
+#define SERVER_PORT 8080
+#define MAX_LISTEN  128
+#define LOCAL_IPADDRESS "127.0.0.1"
 #define BUFFER_SIZE 128
 
-/* 线程执行的任务 */
-void * threadHandle(void *arg)
+
+#define MINTHREADS      5
+#define MAXTHREADS      10
+#define MAXQUEUESIZE    50
+
+
+
+void sigHander(int sigNum)
 {
-    /* 设置线程分离 */
-    pthread_detach(pthread_self());
-    /* 通信句柄 */
-    int acceptfd = *(int *)arg;
+    printf("ignore...\n");
 
-    /* 开始通信 */
-    /* 接收缓冲区 */
-    char recvBuffer[BUFFER_SIZE];
-    memset(recvBuffer, 0, sizeof(recvBuffer));
-
-    /* 发送缓冲区 */
-    char sendBuffer[BUFFER_SIZE];
-    memset(sendBuffer, 0, sizeof(sendBuffer));
-
-    /* 读取到的字节数 */
-    int readBytes = 0;
-    while (1)
-    {
-        readBytes = read(acceptfd, recvBuffer, sizeof(recvBuffer));
-        if (readBytes <= 0)
-        {
-            perror("read error");
-            close(acceptfd);
-            break;
-        }
-        else
-        {
-
-        }
-    }
-    
-
+    return;
 }
+
 
 int main()
 {
-    /* 先创建套接字 */
+#if 1
+    /* 初始化线程池 */
+    threadpool_t pool;
+    threadPoolInit(&pool, MINTHREADS, MAXTHREADS, MAXQUEUESIZE);
+#endif
+
+    /* 信号注册 */
+    // signal(SIGINT, sigHander);
+    // signal(SIGQUIT, sigHander);
+    // signal(SIGTSTP, sigHander);
+
+    /* 信号注册 */
+    signal(SIGPIPE, sigHander);
+
+
+
+    /* 创建socket套接字 */
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1)
     {
@@ -69,24 +68,31 @@ int main()
         exit(-1);
     }
 
-    /* 开始绑定 */
+    /* 绑定 */
     struct sockaddr_in localAddress;
+    /* 清除脏数据 */
     memset(&localAddress, 0, sizeof(localAddress));
 
-    /* 分配地址族 */
+    /* 地址族 */
     localAddress.sin_family = AF_INET;
-    /* 端口和ip都需要转换成大端 */
-    localAddress.sin_addr.s_addr = INADDR_ANY;
+    /* 端口需要转成大端 */
+    localAddress.sin_port = htons(SERVER_PORT);
+    /* ip地址需要转成大端 */
 
+    /* Address to accept any incoming messages.  */
+    /* INADDR_ANY = 0x00000000 */
+    localAddress.sin_addr.s_addr = htonl(INADDR_ANY); 
+
+    
     int localAddressLen = sizeof(localAddress);
-    int ret = bind(sockfd, (struct sockaddr *)&localAddress, localAddressLen);
+    ret = bind(sockfd, (struct sockaddr *)&localAddress, localAddressLen);
     if (ret == -1)
     {
         perror("bind error");
         exit(-1);
     }
 
-    /* 开始监听 */
+    /* 监听 */
     ret = listen(sockfd, MAX_LISTEN);
     if (ret == -1)
     {
@@ -95,26 +101,33 @@ int main()
     }
 
     /* 客户的信息 */
-    struct sockaddr_in clientAdress;
-    memset(&clientAdress, 0, sizeof(clientAdress));
+    struct sockaddr_in clientAddress;
+    memset(&clientAddress, 0, sizeof(clientAddress));
 
+    
+    /* 循环去接收客户端的请求 */
     while (1)
     {
-        socklen_t clientAdressLen = 0;
-        /* 接收信息 */
-        int acceptfd = accept(sockfd, (struct sockaddr *)&clientAdress, &clientAdressLen);
+        socklen_t clientAddressLen = 0;
+        /* 局部变量到下一次循环地方就会被释放. */
+        int acceptfd = accept(sockfd, (struct sockaddr *)&clientAddress, &clientAddressLen);
         if (acceptfd == -1)
         {
-            perror("accept error");
+            perror("accpet error");
             exit(-1);
         }
+        /* 将任务添加任务队列 */
+        threadPoolAddTask(&pool, thread_handle, (void *)&acceptfd);
+    } 
 
-        /* 将任务添加到任务队列 */
-        
-    }
+#if 1
+    /* 释放线程池 */
+    threadPoolDestroy(&pool);
+#endif
 
+
+    /* 关闭文件描述符 */
     close(sockfd);
-
 
     return 0;
 }

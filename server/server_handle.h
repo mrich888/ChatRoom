@@ -1,6 +1,8 @@
 #ifndef __SERVER_HANDLE_H
 #define __SERVER_HANDLE_H
 
+#include <json-c/json.h>
+
 #define MAX_USERNAME  20
 #define MAX_PASSWORD  10
 #define MAX_CONTENT   1024
@@ -50,7 +52,7 @@ int handle_direct_message();
 /* 服务器执行群聊操作 */
 int handle_group_chat();
 /* 线程处理函数 */
-void * thread_handle(void *arg);
+void * thread_handle(int sockfd, struct json_object *message);
 
 
 #endif //__SERVER_HANDLE_H
