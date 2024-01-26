@@ -14,13 +14,43 @@
 #define BUFFER_SIZE 128
 
 /* 打印操作菜单 */
-void print_menu()
+void print_menu1()
 {
     printf("1.Login\n");
     printf("2.Register\n");
     printf("3.Direct chat\n");
     printf("4.Group char\n");
     printf("please choose right function\n");
+}
+
+/* 打印操作菜单 */
+void print_menu2()
+{
+    printf("1.Direct chat\n");
+    printf("2.Group char\n");
+    printf("please choose right function\n");
+}
+
+/* 登录之后的页面 */
+int login_after()
+{
+    /* 跳转到主页面，继续选择功能 */
+    int choice = 0;
+    login_after();
+    scanf("%d", &choice);
+    getchar();
+    switch (choice)
+    {
+    case Direct_chat:
+        handle_direct_message();
+        break;
+    case Groups_chat:
+        handle_group_chat();
+        break;
+    default:
+        printf("Please select the correct function!");
+        break;
+    }
 }
 
 
@@ -43,11 +73,20 @@ int send_to_server(int sockfd, struct json_object *message)
         return 0;
     }
 
-    /* 接收服务器发来的消息 ---服务器接收成功的话回复成功接收； */
+    /* 接收服务器发来的信息 --- 成功 / 注册失败 / 登录失败 .... */
     char recvBuffer[BUFFER_SIZE];
     memset(recvBuffer, 0, sizeof(recvBuffer));
     recv(sockfd, recvBuffer, sizeof(recvBuffer), 0);
-    printf("recv:%s\n", recvBuffer);
+    if (strcmp(recvBuffer, "Welcome to visit!") == 0)
+    {
+        /* 登录成功跳转 */
+        login_after();
+    }
+    if (strcmp(recvBuffer, "Already register!") == 0)
+    {
+        /* 密码错误，重新跳转到最开始去获取用户名密码 --- 跳转到初始化界面吧。。。。 */
+        
+    }
 
     return 0;
 }

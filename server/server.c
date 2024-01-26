@@ -23,6 +23,55 @@
 #define MAXTHREADS      10
 #define MAXQUEUESIZE    50
 
+/* 线程处理函数:传过来一个通信句柄，一个json对象的字符串 */
+void * thread_handle(void* args)
+{
+    /* 设置线程分离 */
+    pthread_detach(pthread_self());
+    /* 获取到通信句柄. */
+    int sockfd = *(int *)args;
+
+    /* todo....这里需要完善一下在线列表 */
+
+    /* 定义一个json对象:接收缓存区 */
+    //struct json_object *user = json_object_new_object();
+    /* 读缓存区 */
+    char recvBuffer[BUFFER_SIZE];
+    memset(recvBuffer, 0, sizeof(recvBuffer));
+    /* 先接收消息再解析传过来的json时有多种情况：登录 / 注册 / 私聊 / 群聊  */
+    while (recv(sockfd, recvBuffer, sizeof(recvBuffer), 0) > 0)
+    {
+        /* 将获取的字符串转成json对象 */
+        struct json_object *user = json_tokener_parse(recvBuffer); 
+        /* 解析json,获取功能 */
+        struct json_object *typeVal = json_object_object_get(user, "type");
+        /* 将type转换成字符串 */
+        const char * pType = json_object_get_string(typeVal);
+        /* 比较两个字符串,实现相应的功能 */
+        if (strcmp(*pType, "Login") == 0)
+        {
+            handle_login(sockfd, user);
+        }
+        else if(strcmp(*pType, "Register") == 0)
+        {
+            handle_register(sockfd, user);
+        }
+        else if (strcmp(*pType, "Direct_chat") == 0)
+        {
+            handle_direct_message();
+        }
+        else if (strcmp(*pType, "Groups_chat") == 0)
+        {
+            handle_group_chat();
+        }
+        else
+        {
+            printf("There is currently no functionality for this feature.....");
+        }
+    }
+    /* 线程退出 */
+    pthread_exit(NULL);
+}
 
 
 void sigHander(int sigNum)

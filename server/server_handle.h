@@ -2,13 +2,17 @@
 #define __SERVER_HANDLE_H
 
 #include <json-c/json.h>
+#include <sqlite3.h>
 
 #define MAX_USERNAME  20
 #define MAX_PASSWORD  10
 #define MAX_CONTENT   1024
 #define MAX_TARGET    10
 
-
+/* 创建一个数据库 */
+sqlite3 *chatRoom;
+/* 初始化一个数据库的锁 */
+pthread_mutex_t mutex_db = PTHREAD_MUTEX_INITIALIZER;
 
 enum CHOICE 
 {
@@ -21,19 +25,6 @@ enum CHOICE
     /* 群聊 */
     Groups_chat,
 };
-
-
-
-/* 信息结构体 */
-typedef struct message
-{
-    int type; //功能选择
-    char userName[MAX_USERNAME];//用户名
-    char password[MAX_PASSWORD];//密码
-    char content[MAX_CONTENT];//发送的内容
-    char target[MAX_TARGET];//发送的目标
-
-}message;
 
 /* 在线客户端 */
 typedef struct client
@@ -52,7 +43,7 @@ int handle_direct_message();
 /* 服务器执行群聊操作 */
 int handle_group_chat();
 /* 线程处理函数 */
-void * thread_handle(int sockfd, struct json_object *message);
+void * thread_handle(void* args);
 
 
 #endif //__SERVER_HANDLE_H
