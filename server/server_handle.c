@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <json-c/json.h>
 
-
 #define BUFFER_SIZE 1028
 
 /* 全局锁 */
@@ -25,9 +24,15 @@ pthread_mutex_t mutex_db = PTHREAD_MUTEX_INITIALIZER;
         2. 用户名和密码不匹配 ---在数据库中搜索一遍发现未找到相对应的账号密码 name = "" && password = "" --- 重新输入
         3. 匹配成功 ---跳转到主页面 ---进行其他功能的选择
 */
-/* 服务器执行登录操作 */
+/*
+    登录成功后需要将该客户端加入到在线队列中 --- 服务器需要维护一个客户端在线列表 --- json封装 
+    在线队列：用户名 + socke
+*/
+
+/* 服务器执行登录操作 */ 
 int handle_login(int sockfd, struct json_object *message)
 {
+    /* ⭐查询时需要加锁 ⭐json的资源需要释放（do .... while ....） */
     int sockfd = sockfd;
     struct json_object * user = message;
     /* 登录需要获取到用户名和密码和类型,所以需要将获取到的json对象通过键获取到相应的值 */
@@ -92,18 +97,82 @@ int handle_login(int sockfd, struct json_object *message)
     }
     
 }
-
-
-/* 登录之后到的回复 */
-int  login_callback (void *arg)
-{
-    
-}
-
-
 /* 服务器执行注册操作 */
-int handle_register()
+int handle_register(int client_sockfd, struct json_object *message)
 {
+    /* 将用户的信息转过来 */
+    struct json_object *user = message;
+    /* 直接将json对象转换成string类型 直接将string 和数据库中的数据进行对比和插入 数据库不能插入json类型的数据 */
+    /* 将json中的name取出来(总而言之就是将json对象里面的username专门拿出来) 进行搜索对比 */
+    struct json_object * nameVal = json_object_object_get(user, "userName");
+    if (nameVal == NULL)
+    {
+        perror("get nameVal error");
+        exit(-1);
+    }
+    char *nameValue = json_object_get_string(nameVal); 
+
+    /* 将密码用string取出来 */
+    struct json_object * pwdVal = json_object_object_get(user, "passWord");
+    if (pwdVal == NULL)
+    {
+        perror("get pwdVal error");
+        exit(-1);
+    }
+    char * pwdValue = json_object_get_string(&pwdVal);
+
+
+    /* 打开对应数据库的用户表 */
+    sqlite3 *mydb = NULL;
+    int ret = sqlite3_open("chatRoom.db", &mydb);
+    if (ret != SQLITE_OK)
+    {
+        perror("open error");
+        exit(-1);
+    }
+    /* 加锁 定义一个锁 */
+    pthread_mutex_lock(&mutex_db);
+
+    /* 打开数据成功后 要将用户注册输入的名字与数据库中的数据进行对比
+        如果相等 就说明有重名的就需要用户重新输入一个名称          */
+    char sqlBuffer[BUFFER_SIZE];
+    memset(sqlBuffer, 0, sizeof(sqlBuffer));
+    sprintf(sqlBuffer, "select * from chatRoom where username = '%s'", &nameValue);
+
+    char **result = NULL;
+    int row = 0, column = 0;
+    ret = sqlite3_get_table(mydb, sqlBuffer, &result, &row, &column, NULL);
+    if (ret == SQLITE_OK)
+    {
+        
+        if (row > 0)
+        {
+            /* 程序运行到这里就说明用户注册的Name在该数据库中找到了
+                在数据库中 有数据的是第一行 所以如果row大于0的时候 说明一定在该数据库中找到了这个用户名 */
+            send(client_sockfd, "username already exists, please put anther username!", sizeof("username already exists, please put anther username!"), 0);
+        }
+        else
+        {
+            /* 程序到这就是没有找到该用户名 要将username和password存储进数据库中 */
+            sprintf(sqlBuffer, "insert into user(username, password)values'%s', '%s", &nameValue, &pwdVal);
+            ret = sqlite3_exec(mydb, sqlBuffer, NULL, NULL, NULL);
+            if (ret == SQLITE_OK)
+            {
+                /* 说明执行没有出错 注册成功 */
+                send(client_sockfd, "Register successful! please Login", sizeof("Register successful! please Login"), 0);
+                /* 这边可以考虑直接跳到登录函数 */
+                handle_login(client_sockfd, user);
+            }
+            else
+            {
+                /* 说明语句或者哪里出错 没有注册成功 */
+                send(client_sockfd, "Register failure", sizeof("Register failure"), 0);
+            }
+        }
+        sqlite3_free_table(result);
+    }
+    /* 解锁 释放锁操作 */
+    pthread_mutex_unlock(&mutex_db);
 
 }
 /* 服务器执行私聊操作 */
