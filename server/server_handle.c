@@ -175,14 +175,71 @@ int handle_register(int client_sockfd, struct json_object *message)
     pthread_mutex_unlock(&mutex_db);
 
 }
+#if 1
 /* 服务器执行私聊操作 */
-int handle_direct_message()
+int handle_direct_message(int client_sockfd, struct json_object *message)
 {
+    /* 获取私聊信息 */
+    struct json_object *directMessage = message;
+    struct json_object *senderNameVal = json_object_object_get(directMessage, "senderName");
+    struct json_object *receiverNameVal = json_object_object_get(directMessage, "receiverName");
+    struct json_object *messageVal = json_object_object_get(directMessage, "message");
 
+    /* 将私聊信息转换为字符串 */
+    const char *senderName = json_object_to_json_string(senderNameVal);
+    const char *receiverName = json_object_to_json_string(receiverNameVal);
+    const char *message = json_object_to_json_string(messageVal);
+
+    /* 构建私聊消息 */
+    char directMessage[BUFFER_SIZE];
+    snprintf(directMessage, sizeof(directMessage), "[Private] %s: %s", senderName, message);
+
+    /* 查找接收者的套接字 */
+    int receiverSocket = -1;
+    // pthread_mutex_lock(&mutex_db);
+    // for (int idx = 0; idx < online_clients.size(); idx++) {
+    //     if (strcmp(client_names[online_clients[idx]], receiverName) == 0) {
+    //         receiverSocket = online_clients[idx];
+    //         break;
+    //     }
+    // }
+    pthread_mutex_unlock(&mutex_db);
+
+    /* 发送私聊消息给接收者 */
+    // if (receiverSocket != -1) {
+    //     send(receiverSocket, directMessage, strlen(directMessage), 0);
+    // } else {
+    //     /* 如果接收者不在线，给发送者发送提示信息 */
+    //     char offlineMsg[BUFFER_SIZE];
+    //     snprintf(offlineMsg, sizeof(offlineMsg), "%s is offline or does not exist.", receiverName);
+    //     send(sockfd, offlineMsg, strlen(offlineMsg), 0);
+    // }
+    return 0;
+   
 }
 /* 服务器执行群聊操作 */
-int handle_group_chat()
+int handle_group_chat(int client_sockfd, struct json_object *message)
 {
+    /* 获取群聊信息 */
+    struct json_object *groupChat = message;
+    struct json_object *userName = json_object_object_get(groupChat, "userName");
+    struct json_object *group_message = json_object_object_get(groupChat, "message");
 
+    /* 将群聊信息转换为字符串 */
+    const char *userNameVal = json_object_to_json_string(userNameVal);
+    const char *messageVal = json_object_to_json_string(messageVal);
+
+    /* 构建群聊消息 */
+    char groupMessage[BUFFER_SIZE];
+    snprintf(groupMessage, sizeof(groupMessage), "%s: %s", userName, message);
+
+    /* 发送群聊消息给所有在线客户端 */
+    pthread_mutex_lock(&mutex_db);
+    // for (int idx = 0; idx < online_clients.size(); idx++) {
+    //     send(online_clients[idx], groupMessage, strlen(groupMessage), 0);
+    // }
+    pthread_mutex_unlock(&mutex_db);
+
+    return 0;
 }
-
+#endif

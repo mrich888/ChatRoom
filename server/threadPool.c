@@ -162,19 +162,6 @@ static void * managerHander(void *arg)
         if ((busyThreadNums >> 1) < liveThreadNums && liveThreadNums > pool->minThreads)
         {
             pthread_mutex_lock(&(pool->mutexpool));
-            /* todo... */
-            /* 让摸鱼不干活的自己走 */
-            #if 0
-            for (int idx = 0; idx < pool->maxThreads; idx++)
-            {
-                if (pool->threadIds[idx] != 0)
-                {
-                    /* 误删 --- 这边肯定不对. 分不清楚谁在摸鱼，谁在干活. */
-                    pthread_cancel(pool->threadIds[idx]);
-                }
-            }
-            #endif
-
             /* 离开的线程数 */
             pool->exitThreadNums = DEFAULT_VARY_THREADS;
             /* 这边解锁 -- 减少锁的粒度. */
